@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>宝宝记录</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{font-family:-apple-system,"PingFang SC",sans-serif;background:#f5f6fa;padding-bottom:30px;}
+.header{background:#fff;padding:14px 16px;position:sticky;top:0;z-index:10;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+.header h1{font-size:20px;color:#333;text-align:center;}
+.month-bar{display:flex;align-items:center;justify-content:space-between;margin-top:10px;}
+.month-bar button{background:#f0f1f5;border:none;width:44px;height:36px;border-radius:10px;font-size:18px;color:#333;}
+.month-bar .m{font-size:17px;font-weight:600;color:#222;}
+.cards{display:flex;gap:12px;padding:14px 16px;}
+.card{flex:1;border-radius:16px;padding:14px 10px;text-align:center;}
+.card.feed{background:#fff0e6;}
+.card.diaper{background:#e8f7ee;}
+.card .big{font-size:34px;}
+.card .label{font-size:15px;color:#333;margin-top:2px;font-weight:600;}
+.info{font-size:13px;color:#666;margin-top:6px;line-height:1.6;}
+.info b{color:#e67e22;font-size:16px;}
+.btn{display:block;width:100%;margin-top:10px;border:none;border-radius:12px;padding:13px 0;font-size:16px;font-weight:600;color:#fff;}
+.btn-feed{background:#ff8c42;}
+.btn-diaper{background:#27ae60;}
+.stepper{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px;font-size:13px;color:#888;flex-wrap:wrap;}
+.stepper button{width:30px;height:26px;border:none;border-radius:8px;background:#ffe1cc;color:#e67e22;font-size:16px;font-weight:700;}
+.sw-row{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;font-size:13px;color:#888;}
+.sw{width:20px;height:20px;accent-color:#ff8c42;}
+.section-title{padding:6px 16px 8px;font-size:15px;color:#888;font-weight:600;}
+.list{padding:0 16px;}
+.item{background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;}
+.item .left{display:flex;align-items:center;gap:10px;}
+.item .icon{font-size:22px;}
+.item .txt .t1{font-size:16px;color:#222;font-weight:600;}
+.item .txt .t2{font-size:13px;color:#999;margin-top:2px;}
+.del{background:none;border:none;color:#c7c9d1;font-size:20px;padding:4px 8px;}
+.cal{padding:0 16px;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+.cal-head{text-align:center;font-size:13px;color:#999;padding:6px 0;}
+.day{background:#fff;border-radius:10px;min-height:58px;padding:5px 3px;text-align:center;font-size:13px;color:#333;}
+.day .d{font-weight:700;font-size:14px;}
+.day .n{font-size:11px;margin-top:3px;line-height:1.35;}
+.day.today{outline:2px solid #ff8c42;}
+.day.other{color:#ccc;background:#fafbfc;}
+.empty{background:#fff;border-radius:12px;padding:30px;text-align:center;color:#aaa;font-size:14px;}
+.modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;z-index:50;}
+.modal{position:fixed;left:0;right:0;bottom:0;background:#fff;border-radius:18px 18px 0 0;max-height:70%;overflow-y:auto;display:none;z-index:51;padding:16px;}
+.modal h3{font-size:17px;margin-bottom:10px;text-align:center;}
+.close-row{text-align:center;margin-top:12px;}
+.close-row button{background:#f0f1f5;border:none;border-radius:10px;padding:10px 40px;font-size:15px;}
+.toast{position:fixed;top:40%;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);color:#fff;padding:10px 22px;border-radius:10px;font-size:15px;display:none;z-index:99;}
+.data-bar{display:flex;gap:12px;padding:4px 16px 0;}
+.data-bar button{flex:1;border:none;border-radius:12px;padding:12px 0;font-size:14px;font-weight:600;background:#fff;color:#e74c3c;border:1px solid #f5c6c0;}
+.tip{font-size:12px;color:#aaa;text-align:center;padding:10px 16px 0;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🍼 宝宝记录</h1>
+  <div class="month-bar">
+    <button onclick="shiftMonth(-1)">‹</button>
+    <div class="m" id="monthLabel"></div>
+    <button onclick="shiftMonth(1)">›</button>
+  </div>
+</div>
+
+<div class="cards">
+  <div class="card feed">
+    <div class="big">🍼</div>
+    <div class="label">吃奶时间点</div>
+    <div class="info" id="feedInfo">还没有记录</div>
+    <button class="btn btn-feed" onclick="addFeed()">吃奶了（记现在）</button>
+    <div class="stepper">间隔 <button onclick="chgInt(-0.5)">−</button><span id="intLabel">3小时</span><button onclick="chgInt(0.5)">＋</button></div>
+    <div class="sw-row"><input type="checkbox" class="sw" id="remindSw" onchange="onRemindChange()"> 到点响铃提醒</div>
+  </div>
+  <div class="card diaper">
+    <div class="big">💩</div>
+    <div class="label">拉屎</div>
+    <div class="info" style="color:#27ae60"><b id="lastDiaper">还没有</b><br><span id="diaperCountToday">今天0次</span></div>
+    <button class="btn btn-diaper" onclick="addDiaper()">拉了一次</button>
+  </div>
+</div>
+
+<div class="section-title">今日记录</div>
+<div class="list" id="todayList"></div>
+
+<div class="section-title">月历（点某天看明细，‹ › 翻月份，每月重复使用）</div>
+<div class="cal"><div class="cal-grid" id="calGrid"></div></div>
+
+<div class="section-title">数据管理</div>
+<div class="data-bar">
+  <button onclick="clearMonth()">删除本月记录</button>
+  <button onclick="clearAll()">清空全部数据</button>
+</div>
+<div class="tip">提醒说明：开着本页面时，到预计时间会响铃并弹通知；页面关闭或锁屏后 iPhone 不让网页响铃，需用系统闹钟。</div>
+
+<div class="modal-mask" id="mask" onclick="closeDay()"></div>
+<div class="modal" id="modal">
+  <h3 id="modalTitle"></h3>
+  <div class="list" id="dayList"></div>
+  <div class="close-row"><button onclick="closeDay()">关闭</button></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+var KEY='baby_records_v1', IKEY='feed_interval_h', RKEY='feed_remind_on';
+var records=load();
+var intervalH=loadInt();
+var remindOn=loadRemind();
+var remindTimer=null;
+var now=new Date(), viewY=now.getFullYear(), viewM=now.getMonth();
+
+function load(){try{var s=localStorage.getItem(KEY);return s?JSON.parse(s):[];}catch(e){return[];}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(records));}catch(e){toast('保存失败');}}
+function loadInt(){try{var v=parseFloat(localStorage.getItem(IKEY));return isNaN(v)?3:v;}catch(e){return 3;}}
+function saveInt(){try{localStorage.setItem(IKEY,String(intervalH));}catch(e){}}
+function loadRemind(){try{return localStorage.getItem(RKEY)==='1';}catch(e){return false;}}
+function saveRemind(){try{localStorage.setItem(RKEY,remindOn?'1':'0');}catch(e){}}
+function pad(n){return n<10?'0'+n:n;}
+function fmtTime(ts){var d=new Date(ts);return pad(d.getHours())+':'+pad(d.getMinutes());}
+function sameDay(a,b){var x=new Date(a),y=new Date(b);return x.getFullYear()==y.getFullYear()&&x.getMonth()==y.getMonth()&&x.getDate()==y.getDate();}
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(function(){t.style.display='none';},2000);}
+function fmtGap(ms){var m=Math.floor(ms/60000);var h=Math.floor(m/60);m=m%60;if(h>0)return h+'小时'+m+'分';return m+'分钟';}
+function lastFeedTs(){var feeds=records.filter(function(r){return r.type==='feed';});if(!feeds.length)return null;return feeds.reduce(function(a,b){return a.ts>b.ts?a:b;}).ts;}
+
+/* ---------- 提醒 ---------- */
+function onRemindChange(){
+  remindOn=document.getElementById('remindSw').checked;
+  saveRemind();
+  if(remindOn){
+    toast('提醒已开：页面开着时到点会响');
+    if('Notification' in window && Notification.permission==='default'){
+      Notification.requestPermission();
+    }
+    beep(); // 用户手势内激活声音
+  }else{toast('提醒已关');}
+  scheduleRemind();
+}
+function scheduleRemind(){
+  if(remindTimer){clearTimeout(remindTimer);remindTimer=null;}
+  if(!remindOn)return;
+  var last=lastFeedTs();if(!last)return;
+  var next=last+intervalH*3600000;
+  var delay=next-Date.now();
+  if(delay>0&&delay<86400000){
+    remindTimer=setTimeout(fireRemind,delay);
+  }
+}
+function fireRemind(){
+  beep();
+  toast('⏰ 到点了，该吃奶了！');
+  if('Notification' in window && Notification.permission==='granted'){
+    try{new Notification('宝宝吃奶提醒',{body:'到预计吃奶时间啦'});}catch(e){}
+  }
+}
+function beep(){
+  try{
+    var ctx=beep.ctx||(beep.ctx=new (window.AudioContext||window.webkitAudioContext)());
+    var times=[0,0.4,0.8];
+    times.forEach(function(off){
+      var o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.frequency.value=880;
+      var t=ctx.currentTime+off;
+      g.gain.setValueAtTime(0.001,t);
+      g.gain.exponentialRampToValueAtTime(0.5,t+0.03);
+      g.gain.exponentialRampToValueAtTime(0.001,t+0.3);
+      o.start(t);o.stop(t+0.32);
+    });
+  }catch(e){}
+}
+
+/* ---------- 吃奶：记时间点 ---------- */
+function addFeed(){
+  var ts=Date.now();
+  records.push({id:ts,type:'feed',ts:ts});
+  save();toast('已记录吃奶 '+fmtTime(ts));render();scheduleRemind();
+}
+function chgInt(d){
+  intervalH=Math.round((intervalH+d)*2)/2;
+  if(intervalH<0.5)intervalH=0.5;
+  if(intervalH>12)intervalH=12;
+  saveInt();render();scheduleRemind();
+}
+function renderFeedInfo(){
+  document.getElementById('intLabel').textContent=(intervalH%1==0?intervalH:intervalH.toFixed(1))+'小时';
+  document.getElementById('remindSw').checked=remindOn;
+  var el=document.getElementById('feedInfo');
+  var last=lastFeedTs();
+  if(!last){el.innerHTML='还没有记录';return;}
+  var gap=Date.now()-last;
+  var next=last+intervalH*3600000;
+  el.innerHTML='上次：<b>'+fmtTime(last)+'</b><br>距今：'+fmtGap(gap)+'<br>预计下次：<b style="color:#27ae60">'+fmtTime(next)+'</b>';
+}
+
+/* ---------- 拉屎 ---------- */
+function addDiaper(){
+  var ts=Date.now();
+  records.push({id:ts,type:'diaper',ts:ts});
+  save();toast('已记录拉屎 '+fmtTime(ts));render();
+}
+function renderDiaperInfo(){
+  var ds=records.filter(function(r){return r.type==='diaper';});
+  var el=document.getElementById('lastDiaper');
+  if(!ds.length){el.textContent='还没有';}
+  else{var last=ds.reduce(function(a,b){return a.ts>b.ts?a:b;});el.textContent='上次 '+fmtTime(last.ts)+'（'+fmtGap(Date.now()-last.ts)+'前）';}
+  var c=records.filter(function(r){return r.type==='diaper'&&sameDay(r.ts,Date.now());}).length;
+  document.getElementById('diaperCountToday').textContent='今天'+c+'次';
+}
+
+/* ---------- 一键删除 ---------- */
+function clearMonth(){
+  var n=records.filter(function(r){var d=new Date(r.ts);return d.getFullYear()==viewY&&d.getMonth()==viewM;}).length;
+  if(!n){toast('本月没有记录');return;}
+  if(confirm('确定删除 '+viewY+'年'+(viewM+1)+'月 的全部 '+n+' 条记录吗？')){
+    records=records.filter(function(r){var d=new Date(r.ts);return !(d.getFullYear()==viewY&&d.getMonth()==viewM);});
+    save();render();scheduleRemind();toast('本月记录已删除');
+  }
+}
+function clearAll(){
+  if(!records.length){toast('本来就空的');return;}
+  if(confirm('确定清空全部 '+records.length+' 条记录吗？删了就找不回了！')){
+    records=[];save();render();scheduleRemind();toast('已全部清空');
+  }
+}
+
+function render(){renderMonthBar();renderToday();renderCal();renderFeedInfo();renderDiaperInfo();}
+function renderMonthBar(){document.getElementById('monthLabel').textContent=viewY+'年'+(viewM+1)+'月';}
+function itemHTML(r){
+  var icon=r.type==='feed'?'🍼':'💩';
+  var main=r.type==='feed'?('吃奶 '+fmtTime(r.ts)):'拉屎 '+fmtTime(r.ts);
+  var d=new Date(r.ts);
+  var sub=(d.getMonth()+1)+'月'+d.getDate()+'日';
+  return '<div class="item"><div class="left"><span class="icon">'+icon+'</span><div class="txt"><div class="t1">'+main+'</div><div class="t2">'+sub+'</div></div></div><button class="del" onclick="delRec('+r.id+')">×</button></div>';
+}
+function renderToday(){
+  var list=records.filter(function(r){return sameDay(r.ts,Date.now());}).sort(function(a,b){return b.ts-a.ts;});
+  var el=document.getElementById('todayList');
+  el.innerHTML=list.length?list.map(itemHTML).join(''):'<div class="empty">今天还没记录，点上面的按钮吧</div>';
+}
+function renderCal(){
+  var first=new Date(viewY,viewM,1);
+  var startDay=(first.getDay()+6)%7;
+  var daysInMonth=new Date(viewY,viewM+1,0).getDate();
+  var head=['一','二','三','四','五','六','日'].map(function(w){return '<div class="cal-head">'+w+'</div>';}).join('');
+  var html=head;
+  for(var i=0;i<startDay;i++)html+='<div class="day other"></div>';
+  for(var d=1;d<=daysInMonth;d++){
+    var date=new Date(viewY,viewM,d);
+    var dayRecs=records.filter(function(r){return sameDay(r.ts,date.getTime());});
+    var feeds=dayRecs.filter(function(r){return r.type==='feed';}).length;
+    var diapers=dayRecs.filter(function(r){return r.type==='diaper';}).length;
+    var notes='';
+    if(feeds)notes+='🍼'+feeds;
+    if(diapers)notes+=(notes?' ':'')+'💩'+diapers;
+    var isToday=sameDay(date.getTime(),Date.now());
+    html+='<div class="day'+(isToday?' today':'')+'" onclick="openDay('+d+')"><div class="d">'+d+'</div><div class="n">'+notes+'</div></div>';
+  }
+  document.getElementById('calGrid').innerHTML=html;
+}
+function openDay(d){
+  var date=new Date(viewY,viewM,d);
+  var list=records.filter(function(r){return sameDay(r.ts,date.getTime());}).sort(function(a,b){return b.ts-a.ts;});
+  document.getElementById('modalTitle').textContent=(viewM+1)+'月'+d+'日 · 共'+list.length+'条';
+  document.getElementById('dayList').innerHTML=list.length?list.map(itemHTML).join(''):'<div class="empty">这一天没有记录</div>';
+  document.getElementById('mask').style.display='block';
+  document.getElementById('modal').style.display='block';
+}
+function closeDay(){document.getElementById('mask').style.display='none';document.getElementById('modal').style.display='none';}
+function delRec(id){records=records.filter(function(r){return r.id!==id;});save();render();scheduleRemind();closeDay();toast('已删除');}
+function shiftMonth(n){viewM+=n;if(viewM<0){viewM=11;viewY--;}if(viewM>11){viewM=0;viewY++;}render();}
+render();
+scheduleRemind();
+setInterval(renderFeedInfo,30000);
+</script>
+</body>
+</html>
